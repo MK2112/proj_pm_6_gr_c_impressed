@@ -100,7 +100,7 @@ DATASET_ATTRIBUTES = {
 
 def run_single_fold(train_df, test_df, dataset_name, fold_num):
     # Run the pattern discovery and evaluation for a single fold of cross-validation
-    print(f"=== Running Fold {fold_num + 1}/{N_SPLITS} for {dataset_name} ===")
+    print(f"\n--- Running Fold {fold_num + 1}/{N_SPLITS} for {dataset_name} ---")
     mapping = COLUMN_MAPPING[dataset_name]
     case_id_col, activity_col, timestamp_col, label_col = (
         mapping["case_id"],
@@ -175,12 +175,12 @@ def run_single_fold(train_df, test_df, dataset_name, fold_num):
     all_extended_patterns_dict = {}
 
     for ext_step in range(MAX_EXTENSION_STEPS + 1):
-        # Early Stop for bpic11_trunc.csv data, too expensive to run
-        if dataset_name == "bpic11_trunc.csv" and ext_step > 0:
-            print(
-                f"Early stopping for {dataset_name} after Extension Step {ext_step - 1} due to computational complexity."
-            )
-            break
+        # Early Stop for bpic11_trunc.csv data, computationally *really* expensive to run (tested for 12h, cancelled run)
+        #if dataset_name == "bpic11_trunc.csv" and ext_step > 0:
+        #    print(
+        #        f"Early stopping for {dataset_name} after Extension Step {ext_step - 1} due to computational complexity."
+        #    )
+        #    break
 
         print(f"\n>> Extension Step {ext_step}")
 
@@ -462,16 +462,13 @@ def main():
                 df[mapping["case_id"]].isin(declined_cases).astype(int)
             )
         elif dataset_name == "bpic11_trunc.csv":
-            case_lengths = df.groupby(mapping["case_id"]).size()
-            # Define deviant cases as those with length > 80th percentile
-            deviant_threshold = case_lengths.quantile(0.8)
-            deviant_cases = case_lengths[case_lengths > deviant_threshold].index
-            df[mapping["label"]] = (
-                df[mapping["case_id"]].isin(deviant_cases).astype(int)
-            )
-            print(
-                f"BPIC11: Derived label using case length > {deviant_threshold:.2f} (80th percentile)."
-            )
+            # Paper uses e.g. 'diagnosis' column specifically, so we do so too
+            # as the target for outcome-oriented pattern discovery
+            # Taking the first non-empty diagnosis per case
+            case_diagnosis = df.groupby(mapping['case_id'])['Diagnosis'].first()
+            case_diagnosis = case_diagnosis.fillna('Unknown')
+            df[mapping['label']] = df[mapping['case_id']].map(case_diagnosis)
+            print(f"BPIC11: Mapped 'Diagnosis' to outcome label (Multi-class).")
 
         df[mapping["timestamp"]] = pd.to_datetime(df[mapping["timestamp"]])
         df = df.sort_values(mapping["timestamp"]).reset_index(drop=True)
