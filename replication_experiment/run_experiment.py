@@ -176,11 +176,11 @@ def run_single_fold(train_df, test_df, dataset_name, fold_num):
 
     for ext_step in range(MAX_EXTENSION_STEPS + 1):
         # Early Stop for bpic11_trunc.csv data, computationally *really* expensive to run (tested for 12h, cancelled run)
-        #if dataset_name == "bpic11_trunc.csv" and ext_step > 0:
-        #    print(
-        #        f"Early stopping for {dataset_name} after Extension Step {ext_step - 1} due to computational complexity."
-        #    )
-        #    break
+        if dataset_name == "bpic11_trunc.csv" and ext_step > 0:
+            print(
+                f"Early stopping for {dataset_name} after Extension Step {ext_step - 1} due to computational complexity."
+            )
+            break
 
         print(f"\n>> Extension Step {ext_step}")
 
